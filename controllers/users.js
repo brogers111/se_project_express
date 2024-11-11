@@ -19,7 +19,13 @@ const createUser = (req, res) => {
 
   User.create({ name, avatar })
     .then((user) => res.status(201).send(user))
-    .catch((err) => handleError(err, res, BAD_REQUEST));
+    .catch((err) => {
+      if (err.name === "ValidationError") {
+        handleError(err, res, BAD_REQUEST);
+      } else {
+        handleError(err, res, SERVER_ERROR);
+      }
+    });
 };
 
 // GET /users/:userId

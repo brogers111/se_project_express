@@ -20,7 +20,13 @@ const createItem = (req, res) => {
 
   Item.create({ name, weather, imageUrl, owner })
     .then((item) => res.status(201).send(item))
-    .catch((err) => handleError(err, res, BAD_REQUEST));
+    .catch((err) => {
+      if (err.name === "ValidationError") {
+        handleError(err, res, BAD_REQUEST);
+      } else {
+        handleError(err, res, SERVER_ERROR);
+      }
+    });
 };
 
 // DELETE /items/:itemId
