@@ -1,5 +1,6 @@
 module.exports = {
   BAD_REQUEST: 400,
+  UNAUTHORIZED_ERROR_CODE: 401,
   NOT_FOUND: 404,
   SERVER_ERROR: 500,
 
@@ -7,6 +8,8 @@ module.exports = {
     switch (status) {
       case 400:
         return "Invalid data provided";
+      case 401:
+        return "Authorization required";
       case 404:
         return "Requested resource not found";
       case 500:
