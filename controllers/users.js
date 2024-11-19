@@ -5,9 +5,9 @@ const { JWT_SECRET } = require("../utils/config");
 
 const {
   BAD_REQUEST,
-  UNAUTHORIZED_ERROR_CODE,
   NOT_FOUND,
   SERVER_ERROR,
+  DUPLICATE,
   handleError,
 } = require("../utils/errors");
 
@@ -37,7 +37,7 @@ const createUser = (req, res) => {
       if (err.name === "ValidationError") {
         handleError(err, res, BAD_REQUEST);
       } else if (err.code === 11000) {
-        res.status(409).send({ message: "Email already exists." });
+        res.status(DUPLICATE).send({ message: "Email already exists." });
       } else {
         handleError(err, res, SERVER_ERROR);
       }
@@ -56,7 +56,7 @@ const login = (req, res) => {
       res.send({ token });
     })
     .catch((err) => {
-      res.status(UNAUTHORIZED_ERROR_CODE).send({ message: err.message });
+      res.status(BAD_REQUEST).send({ message: err.message });
     });
 };
 
@@ -68,12 +68,7 @@ const getCurrentUser = (req, res) => {
       if (!user) {
         return res.status(NOT_FOUND).send({ message: "User not found" });
       }
-      return res.status(200).send({
-        name: user.name,
-        avatar: user.avatar,
-        email: user.email,
-        _id: user._id,
-      });
+      return res.status(200).send(user);
     })
     .catch((err) => {
       handleError(err, res, SERVER_ERROR);
@@ -90,24 +85,19 @@ const updateProfile = (req, res) => {
       .send({ message: "Name and avatar are required" });
   }
 
-  User.findById(_id)
+  return User.findById(_id)
     .then((user) => {
       if (!user) {
         return res.status(NOT_FOUND).send({ message: "User not found" });
       }
 
-      user.name = name;
-      user.avatar = avatar;
-
-      return user
-        .save({ runValidators: true })
+      return User.findByIdAndUpdate(
+        req.user._id,
+        { name: req.body.name, avatar: req.body.avatar },
+        { new: true, runValidators: true }
+      )
         .then((updatedUser) => {
-          res.status(200).send({
-            name: updatedUser.name,
-            avatar: updatedUser.avatar,
-            email: updatedUser.email,
-            _id: updatedUser._id,
-          });
+          res.status(200).send(updatedUser);
         })
         .catch((err) => {
           if (err.name === "ValidationError") {

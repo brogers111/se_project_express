@@ -1,7 +1,9 @@
 module.exports = {
   BAD_REQUEST: 400,
   UNAUTHORIZED_ERROR_CODE: 401,
+  FORBIDDEN: 403,
   NOT_FOUND: 404,
+  DUPLICATE: 409,
   SERVER_ERROR: 500,
 
   getErrorMessage: (status) => {

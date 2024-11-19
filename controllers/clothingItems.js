@@ -1,7 +1,9 @@
+const mongoose = require("mongoose");
 const Item = require("../models/clothingItem");
 const {
   BAD_REQUEST,
   SERVER_ERROR,
+  FORBIDDEN,
   handleError,
   throwNotFoundError,
 } = require("../utils/errors");
@@ -32,11 +34,31 @@ const createItem = (req, res) => {
 // DELETE /items/:itemId
 const deleteItem = (req, res) => {
   const { itemId } = req.params;
+  const { _id: userId } = req.user;
 
-  Item.findByIdAndDelete(itemId)
+  if (!mongoose.Types.ObjectId.isValid(itemId)) {
+    return res.status(BAD_REQUEST).send({ message: "Invalid item ID format" });
+  }
+
+  return Item.findById(itemId)
     .orFail(() => throwNotFoundError("Item not found"))
-    .then(() => res.status(200).send({ message: "Item successfully deleted" }))
-    .catch((err) => handleError(err, res, SERVER_ERROR));
+    .then((item) => {
+      if (item.owner.toString() !== userId) {
+        return res
+          .status(FORBIDDEN)
+          .send({ message: "You are not authorized to delete this item." });
+      }
+
+      return Item.findByIdAndDelete(itemId).then(() =>
+        res.status(200).send({ message: "Item successfully deleted" })
+      );
+    })
+    .catch((err) => {
+      if (err.statusCode) {
+        return res.status(err.statusCode).send({ message: err.message });
+      }
+      return handleError(err, res, SERVER_ERROR);
+    });
 };
 
 const likeItem = (req, res) => {
