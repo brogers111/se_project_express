@@ -8,6 +8,7 @@ const {
   NOT_FOUND,
   SERVER_ERROR,
   DUPLICATE,
+  UNAUTHORIZED_ERROR_CODE,
   handleError,
 } = require("../utils/errors");
 
@@ -48,6 +49,12 @@ const createUser = (req, res) => {
 const login = (req, res) => {
   const { email, password } = req.body;
 
+  if (!email || !password) {
+    return res
+      .status(BAD_REQUEST)
+      .send({ message: "The email and password fields are required." });
+  }
+
   return User.findUserByCredentials(email, password)
     .then((user) => {
       const token = jwt.sign({ _id: user._id }, JWT_SECRET, {
@@ -56,7 +63,14 @@ const login = (req, res) => {
       res.send({ token });
     })
     .catch((err) => {
-      res.status(BAD_REQUEST).send({ message: err.message });
+      if (err.message === "Incorrect email or password") {
+        return res
+          .status(UNAUTHORIZED_ERROR_CODE)
+          .send({ message: "Incorrect email or password" });
+      }
+      return res
+        .status(SERVER_ERROR)
+        .send({ message: "An error has occurred on the server" });
     });
 };
 
@@ -68,7 +82,7 @@ const getCurrentUser = (req, res) => {
       if (!user) {
         return res.status(NOT_FOUND).send({ message: "User not found" });
       }
-      return res.status(200).send(user);
+      return res.send(user);
     })
     .catch((err) => {
       handleError(err, res, SERVER_ERROR);
@@ -85,28 +99,23 @@ const updateProfile = (req, res) => {
       .send({ message: "Name and avatar are required" });
   }
 
-  return User.findById(_id)
-    .then((user) => {
-      if (!user) {
+  return User.findByIdAndUpdate(
+    _id,
+    { name, avatar },
+    { new: true, runValidators: true }
+  )
+    .then((updatedUser) => {
+      if (!updatedUser) {
         return res.status(NOT_FOUND).send({ message: "User not found" });
       }
-
-      return User.findByIdAndUpdate(
-        req.user._id,
-        { name: req.body.name, avatar: req.body.avatar },
-        { new: true, runValidators: true }
-      )
-        .then((updatedUser) => {
-          res.status(200).send(updatedUser);
-        })
-        .catch((err) => {
-          if (err.name === "ValidationError") {
-            return res.status(BAD_REQUEST).send({ message: err.message });
-          }
-          return handleError(err, res, SERVER_ERROR);
-        });
+      return res.send(updatedUser);
     })
-    .catch((err) => handleError(err, res, SERVER_ERROR));
+    .catch((err) => {
+      if (err.name === "ValidationError") {
+        return res.status(BAD_REQUEST).send({ message: err.message });
+      }
+      return handleError(err, res, SERVER_ERROR);
+    });
 };
 
 module.exports = { createUser, login, getCurrentUser, updateProfile };
