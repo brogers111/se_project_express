@@ -23,5 +23,7 @@ module.exports = {
   rules: {
     "no-underscore-dangle": ["error", { allow: ["_id"] }],
     "no-console": ["warn", { allow: ["error", "log"] }],
+    "no-unused-vars": ["error", { argsIgnorePattern: "next" }],
+    "max-classes-per-file": ["error", 5],
   },
 };

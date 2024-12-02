@@ -1,86 +1,77 @@
 const mongoose = require("mongoose");
 const Item = require("../models/clothingItem");
 const {
-  BAD_REQUEST,
-  SERVER_ERROR,
-  FORBIDDEN,
-  handleError,
-  throwNotFoundError,
+  BadRequestError,
+  NotFoundError,
+  ForbiddenError,
 } = require("../utils/errors");
 
 // GET /items
-const getItems = (req, res) => {
+const getItems = (req, res, next) => {
   Item.find({})
     .then((item) => res.status(200).send(item))
-    .catch((err) => handleError(err, res, SERVER_ERROR));
+    .catch(next);
 };
 
 // POST /items
-const createItem = (req, res) => {
+const createItem = (req, res, next) => {
   const { name, weather, imageUrl } = req.body;
   const owner = req.user._id;
 
   Item.create({ name, weather, imageUrl, owner })
     .then((item) => res.status(201).send(item))
     .catch((err) => {
+      const error = new Error(err.message);
       if (err.name === "ValidationError") {
-        handleError(err, res, BAD_REQUEST);
-      } else {
-        handleError(err, res, SERVER_ERROR);
+        next(new BadRequestError("Invalid data provided for item creation"));
       }
+      next(error);
     });
 };
 
 // DELETE /items/:itemId
-const deleteItem = (req, res) => {
+const deleteItem = (req, res, next) => {
   const { itemId } = req.params;
   const { _id: userId } = req.user;
 
   if (!mongoose.Types.ObjectId.isValid(itemId)) {
-    return res.status(BAD_REQUEST).send({ message: "Invalid item ID format" });
+    return next(new BadRequestError("Invalid item ID format"));
   }
 
   return Item.findById(itemId)
-    .orFail(() => throwNotFoundError("Item not found"))
+    .orFail(() => new NotFoundError("Item not found"))
     .then((item) => {
       if (item.owner.toString() !== userId) {
-        return res
-          .status(FORBIDDEN)
-          .send({ message: "You are not authorized to delete this item." });
+        throw new ForbiddenError("You are not authorized to delete this item");
       }
 
       return Item.findByIdAndDelete(itemId).then(() =>
         res.status(200).send({ message: "Item successfully deleted" })
       );
     })
-    .catch((err) => {
-      if (err.statusCode) {
-        return res.status(err.statusCode).send({ message: err.message });
-      }
-      return handleError(err, res, SERVER_ERROR);
-    });
+    .catch(next);
 };
 
-const likeItem = (req, res) => {
+const likeItem = (req, res, next) => {
   Item.findByIdAndUpdate(
     req.params.itemId,
     { $addToSet: { likes: req.user._id } },
     { new: true }
   )
-    .orFail(() => throwNotFoundError("Item not found"))
+    .orFail(() => new NotFoundError("Item not found"))
     .then((item) => res.status(200).send(item))
-    .catch((err) => handleError(err, res, SERVER_ERROR));
+    .catch(next);
 };
 
-const dislikeItem = (req, res) => {
+const dislikeItem = (req, res, next) => {
   Item.findByIdAndUpdate(
     req.params.itemId,
     { $pull: { likes: req.user._id } },
     { new: true }
   )
-    .orFail(() => throwNotFoundError("Item not found"))
+    .orFail(() => new NotFoundError("Item not found"))
     .then((item) => res.status(200).send(item))
-    .catch((err) => handleError(err, res, SERVER_ERROR));
+    .catch(next);
 };
 
 module.exports = { getItems, createItem, deleteItem, likeItem, dislikeItem };
