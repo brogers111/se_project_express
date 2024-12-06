@@ -53,8 +53,14 @@ const deleteItem = (req, res, next) => {
 };
 
 const likeItem = (req, res, next) => {
-  Item.findByIdAndUpdate(
-    req.params.itemId,
+  const { itemId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(itemId)) {
+    return next(new BadRequestError("Invalid item ID format"));
+  }
+
+  return Item.findByIdAndUpdate(
+    itemId,
     { $addToSet: { likes: req.user._id } },
     { new: true }
   )
@@ -64,8 +70,14 @@ const likeItem = (req, res, next) => {
 };
 
 const dislikeItem = (req, res, next) => {
-  Item.findByIdAndUpdate(
-    req.params.itemId,
+  const { itemId } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(itemId)) {
+    return next(new BadRequestError("Invalid item ID format"));
+  }
+
+  return Item.findByIdAndUpdate(
+    itemId,
     { $pull: { likes: req.user._id } },
     { new: true }
   )
