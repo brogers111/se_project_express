@@ -6,12 +6,13 @@ const { errors } = require("celebrate");
 const mainRouter = require("./routes/index");
 const errorHandler = require("./middlewares/errorHandler");
 const { requestLogger, errorLogger } = require("./middlewares/logger");
+const limiter = require("./utils/limiterConfig");
+const { DB_URI, PORT } = require("./utils/config");
 
 const app = express();
-const { PORT = 3001 } = process.env;
 
 mongoose
-  .connect("mongodb://127.0.0.1:27017/wtwr_db")
+  .connect(DB_URI)
   .then(() => {
     console.log("Connected to DB");
   })
@@ -19,6 +20,7 @@ mongoose
 
 app.use(cors());
 app.use(express.json());
+
 app.use(requestLogger);
 
 app.get("/crash-test", () => {
@@ -26,6 +28,8 @@ app.get("/crash-test", () => {
     throw new Error("Server will crash now");
   }, 0);
 });
+
+app.use(limiter);
 
 app.use("/", mainRouter);
 
