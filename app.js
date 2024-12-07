@@ -7,12 +7,12 @@ const mainRouter = require("./routes/index");
 const errorHandler = require("./middlewares/errorHandler");
 const { requestLogger, errorLogger } = require("./middlewares/logger");
 const limiter = require("./utils/limiterConfig");
-const { DB_URI, PORT } = require("./utils/config");
 
 const app = express();
+const { PORT = 3001 } = process.env;
 
 mongoose
-  .connect(DB_URI)
+  .connect("mongodb://127.0.0.1:27017/wtwr_db")
   .then(() => {
     console.log("Connected to DB");
   })

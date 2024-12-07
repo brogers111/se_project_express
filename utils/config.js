@@ -1,7 +1,5 @@
-const config = {
-  JWT_SECRET: process.env.JWT_SECRET,
-  DB_URI: process.env.DB_URI,
-  PORT: process.env.PORT || 3001,
-};
+const { JWT_SECRET = "your-secret-key" } = process.env;
 
-module.exports = config;
+module.exports = {
+  JWT_SECRET,
+};
